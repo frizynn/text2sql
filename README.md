@@ -28,7 +28,7 @@ curl -L -o models/Qwen3.5-2B-Q4_K_M.gguf \
   https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf
 
 cp .env.example .env
-docker compose up --build
+docker-compose up --build   # o: docker compose up --build
 # Abrir http://localhost:8000
 ```
 

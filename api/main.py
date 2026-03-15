@@ -18,7 +18,10 @@ from config import (
     _PROMPT_TEMPLATE, _SCHEMA_TEXT, _GRAMMAR_TEXT, _NLG_TEMPLATE,
     TEXT2SQL_URL, NLG_URL, MODEL_TIMEOUT, MAX_ATTEMPTS,
 )
-from few_shot_retriever import FewShotRetriever
+try:
+    from few_shot_retriever import FewShotRetriever
+except ImportError:
+    FewShotRetriever = None
 from pipelines import PipelineContext, MCTSPipeline
 from endpoints import router
 
@@ -121,10 +124,13 @@ async def lifespan(app: FastAPI):
     )
 
     pool_path = os.path.join(FEW_SHOT_DIR, "text2sql_pool.json")
-    try:
-        pipeline_ctx.text2sql_retriever = FewShotRetriever(pool_path)
-    except Exception as exc:
-        logger.warning("Text2SQL retriever not loaded: %s", exc)
+    if FewShotRetriever is not None:
+        try:
+            pipeline_ctx.text2sql_retriever = FewShotRetriever(pool_path)
+        except Exception as exc:
+            logger.warning("Text2SQL retriever not loaded: %s", exc)
+    else:
+        logger.warning("FewShotRetriever unavailable (torch/transformers not installed)")
 
     app.state.pipeline = MCTSPipeline(pipeline_ctx)
     logger.info("Pipeline strategy: mcts")
