@@ -426,42 +426,55 @@
   async function runNlg(question, sql, results) {
     setProgressText('Generando respuesta\u2026');
     var nlgStart = performance.now();
+    var maxRetries = 3;
 
-    try {
-      var ansResp = await fetch('/answer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: question, sql: sql, results: results }),
-      });
+    for (var attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        var ansResp = await fetch('/answer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: question, sql: sql, results: results }),
+        });
 
-      var nlgElapsed = performance.now() - nlgStart;
+        if (!ansResp.ok) {
+          var errBody = await ansResp.json().catch(function () {
+            return { error: 'model_unavailable', detail: '' };
+          });
+          if (attempt < maxRetries && errBody.error === 'model_unavailable') {
+            setProgressText('Reintentando respuesta (' + attempt + '/' + maxRetries + ')\u2026');
+            await new Promise(function (r) { setTimeout(r, 3000); });
+            continue;
+          }
+          hide(progressLine);
+          hide(answerSkeleton);
+          var mapped = ERROR_MESSAGES[errBody.error];
+          nlgErrorText.textContent = 'No se pudo generar la respuesta en lenguaje natural: ' +
+            (mapped ? mapped.detail : errBody.detail || 'Error del modelo de lenguaje.');
+          show(nlgErrorSection);
+          return;
+        }
 
-      if (!ansResp.ok) {
+        var ansData = await ansResp.json();
+        var nlgElapsed = performance.now() - nlgStart;
         hide(progressLine);
         hide(answerSkeleton);
-        var errBody = await ansResp.json().catch(function () {
-          return { error: 'model_unavailable', detail: '' };
-        });
-        var mapped = ERROR_MESSAGES[errBody.error];
-        nlgErrorText.textContent = 'No se pudo generar la respuesta en lenguaje natural: ' +
-          (mapped ? mapped.detail : errBody.detail || 'Error del modelo de lenguaje.');
-        show(nlgErrorSection);
+
+        answerText.textContent = ansData.answer;
+        nlgTiming.textContent = formatMs(nlgElapsed);
+        show(answerSection);
         return;
+      } catch (e) {
+        console.error('Fetch /answer attempt ' + attempt + ' failed:', e);
+        if (attempt < maxRetries) {
+          setProgressText('Reintentando respuesta (' + attempt + '/' + maxRetries + ')\u2026');
+          await new Promise(function (r) { setTimeout(r, 3000); });
+          continue;
+        }
+        hide(progressLine);
+        hide(answerSkeleton);
+        nlgErrorText.textContent = 'No se pudo conectar con el servidor para generar la respuesta.';
+        show(nlgErrorSection);
       }
-
-      var ansData = await ansResp.json();
-      hide(progressLine);
-      hide(answerSkeleton);
-
-      answerText.textContent = ansData.answer;
-      nlgTiming.textContent = formatMs(nlgElapsed);
-      show(answerSection);
-    } catch (e) {
-      console.error('Fetch /answer failed:', e);
-      hide(progressLine);
-      hide(answerSkeleton);
-      nlgErrorText.textContent = 'No se pudo conectar con el servidor para generar la respuesta.';
-      show(nlgErrorSection);
     }
   }
 
