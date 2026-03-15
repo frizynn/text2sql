@@ -23,7 +23,7 @@ Descarga los modelos (~1.6 GB), copia el `.env` y levanta todo:
 ```bash
 mkdir -p models
 curl -L -o models/qwen2.5-coder-1.5b-instruct-q4_k_m.gguf \
-  https://huggingface.co/frizynn/qwen2.5-coder-1.5b-instruct-q4_k_m-gguf/resolve/main/qwen2.5-coder-1.5b-instruct-q4_k_m.gguf
+  https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/qwen2.5-coder-1.5b-instruct-q4_k_m.gguf
 curl -L -o models/Qwen3.5-2B-Q4_K_M.gguf \
   https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf
 
